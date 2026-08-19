@@ -328,7 +328,8 @@ svg{display:block}
   position:relative;overflow:hidden;display:flex;align-items:flex-end;
   min-height:min(76vh,calc(var(--pw)*1.35));border-radius:36px 36px 0 0;margin-top:-24px;
 }
-.thanks__bg{position:absolute;inset:0;z-index:0;background:#2a3129 center 30%/cover no-repeat;
+.thanks__bg{position:absolute;inset:0;z-index:0;
+  background:#2a3129 url("img/thanks.jpg") center 30%/cover no-repeat;
   transform:scale(1.04);animation:kenburns 20s ease-in-out infinite alternate}
 .thanks__veil{position:absolute;inset:0;z-index:1;
   background:linear-gradient(180deg,rgba(24,30,24,.10) 0%,rgba(24,30,24,.55) 62%,rgba(24,30,24,.80) 100%)}
@@ -411,9 +412,11 @@ svg{display:block}
   <span class="music-toggle__disc"></span>
 </button>
 <audio id="bgm" loop autoplay preload="auto">
-  <!-- Đặt file nhạc tên đúng music.mp3 cạnh index.html là chạy, không cần sửa code.
-       Không có file thì nút nhạc tự ẩn, trang vẫn hoạt động bình thường. -->
-  <source src="music.mp3" type="audio/mpeg" />
+  <!-- Đổi bài: thay 2 file trong thư mục mp3/, giữ đúng tên music.m4a và music.mp3.
+       Trình duyệt lấy nguồn đầu tiên nó đọc được, nên gần như ai cũng tải bản .m4a
+       nhẹ (2,3MB) thay vì .mp3 gốc (6,6MB). Không có file nào thì nút nhạc tự ẩn. -->
+  <source src="mp3/music.m4a" type="audio/mp4" />
+  <source src="mp3/music.mp3" type="audio/mpeg" />
 </audio>
 
 <!-- Lớp hiệu ứng cánh hoa / confetti rơi -->
@@ -638,9 +641,11 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   if (bgm) {
     bgm.volume = 0;
-    bgm.addEventListener('error', tatNhac, true);   /* bắt cả lỗi của thẻ <source> bên trong */
-    var theSource = bgm.querySelector('source');
-    if (theSource) theSource.addEventListener('error', tatNhac);
+    bgm.addEventListener('error', function (e) {
+      /* Lỗi ở một thẻ <source> chỉ có nghĩa là trình duyệt sẽ thử nguồn kế tiếp.
+         Chỉ tắt nhạc khi không còn nguồn nào phát được. */
+      if (e.target === bgm || bgm.networkState === 3) tatNhac();
+    }, true);
     kiemTraNhac();              /* lỗi đã xảy ra trước khi gắn listener */
     setTimeout(kiemTraNhac, 1500);   /* file 404 có thể báo lỗi muộn */
   } else {
@@ -663,20 +668,26 @@ document.addEventListener('DOMContentLoaded', function () {
     }, 40);
   }
 
+  var muonPhat = false;   /* khách đang muốn bật hay tắt */
+
   function batNhac() {
     if (!coNhac) return;
     if (bgm.error) { tatNhac(); return; }
+    muonPhat = true;
     var p = bgm.play();
     if (!p || !p.then) { musicToggle.classList.add('playing'); fade(AM_LUONG); return; }
     p.then(function () {
+      /* Promise resolve muộn: nếu khách đã bấm tắt trong lúc chờ thì tôn trọng ý đó */
+      if (!muonPhat) { bgm.pause(); return; }
       musicToggle.classList.add('playing');
       fade(AM_LUONG);
     }).catch(function () {/* trình duyệt chặn autoplay -> chờ khách bấm nút */});
   }
 
   function tamDung() {
-    fade(0, function () { bgm.pause(); });
+    muonPhat = false;
     musicToggle.classList.remove('playing');
+    fade(0, function () { if (!muonPhat) bgm.pause(); });
   }
 
   btnOpen.addEventListener('click', function () {
@@ -694,8 +705,10 @@ document.addEventListener('DOMContentLoaded', function () {
        2) nếu bị chặn thì phát ở cú chạm/bấm/nhấn phím ĐẦU TIÊN, chạm vào đâu cũng được
      Lưu ý: cuộn trang không được trình duyệt tính là tương tác nên không mở khoá được. */
   var SU_KIEN_MO_KHOA = ['pointerdown', 'touchstart', 'mousedown', 'keydown', 'click'];
-  function moKhoaNhac() {
+  function moKhoaNhac(e) {
     if (!coNhac) { boLangNghe(); return; }
+    /* bấm vào nút nhạc thì để chính nút đó xử lý, tránh vừa bật vừa tắt */
+    if (e && e.target && musicToggle && musicToggle.contains(e.target)) return;
     batNhac();
     if (!bgm.paused) boLangNghe();
   }
@@ -826,14 +839,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  /* ---------- 7. ẢNH NỀN PHẦN CẢM ƠN (dùng lại ảnh cuối trong album) ---------- */
-  var thanksBg = document.getElementById('thanksBg');
-  var lastPh = document.querySelector('.gallery__grid .ph:last-child');
-  if (thanksBg && lastPh) {
-    thanksBg.style.backgroundImage = "url('" + lastPh.querySelector('img').src + "')";
-  }
-
-  /* ---------- 8. LÊN ĐẦU TRANG ---------- */
+  /* ---------- 7. LÊN ĐẦU TRANG ---------- */
   var scrollTopBtn = document.getElementById('scrollTop');
   if (scrollTopBtn) {
     scrollTopBtn.addEventListener('click', function () {
