@@ -227,6 +227,9 @@ svg{display:block}
 }
 /* chữ khắc (Playfair) cho các dòng lớn */
 .ecard__head{font-family:var(--serif);font-size:1.02rem;font-weight:400;letter-spacing:5px;text-transform:uppercase}
+.ecard__guest{font-family:var(--serif);font-size:1.46rem;font-weight:600;line-height:1.3;margin-top:22px}
+/* có tên khách thì bớt khoảng trống, không thì thiệp dài quá */
+.ecard.has-guest{--gap:38px}
 .ecard__time{font-family:var(--serif);font-size:clamp(.86rem,calc(var(--pw)*.044),1.24rem);font-weight:400;
   letter-spacing:1.4px;text-transform:uppercase;white-space:nowrap;margin-top:var(--gap)}
 .ecard__day{font-family:var(--serif);font-size:4.3rem;font-weight:400;line-height:.92;
@@ -495,6 +498,7 @@ svg{display:block}
       <div class="invite__col invite__col--text">
         <div class="ecard">
           <p class="ecard__head">Thân mời</p>
+          <p class="ecard__guest" id="guestName" hidden></p>
           <p class="ecard__time">9:30 - 13:00, Chủ Nhật</p>
           <div class="ecard__date">
             <span class="ecard__side">Tháng 08</span>
@@ -722,13 +726,47 @@ document.addEventListener('DOMContentLoaded', function () {
   });
   batNhac();   /* thử luôn, bị chặn thì đã có listener ở trên đỡ */
 
-  /* ---------- 2. NHẠC NỀN ---------- */
+  /* ---------- 2. TÊN KHÁCH LẤY TỪ ĐƯỜNG DẪN ---------- */
+  /* Mỗi bạn một link riêng, ví dụ:  ...?ten=Minh%20Anh
+     Không có tên thì thiệp hiện y như cũ. Xem thêm file taolink.html */
+  function layTenKhach() {
+    var t = '';
+    try {
+      var q = new URLSearchParams(location.search);
+      t = q.get('ten') || q.get('name') || '';
+      if (!t && location.hash.length > 1) t = decodeURIComponent(location.hash.slice(1));
+    } catch (e) { t = ''; }          /* đường dẫn bị hỏng thì coi như không có tên */
+    t = t
+      .replace(/[\u200B-\u200D\uFEFF\u00AD]/g, '')  /* ký tự tàng hình: nhìn trống mà vẫn tính là có tên */
+      .replace(/[%<>]/g, '')                        /* rác còn lại khi đường dẫn bị mã hoá sai */
+      .replace(/[+_]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 60);
+    /* phải có ít nhất một chữ hoặc số, không thì coi như không có tên */
+    return /[0-9A-Za-z\u00C0-\u1EF9]/.test(t) ? t : '';
+  }
+
+  var tenKhach = layTenKhach();
+  if (tenKhach) {
+    var elGuest = document.getElementById('guestName');
+    if (elGuest) {
+      elGuest.textContent = tenKhach;   /* textContent: tên có ký tự lạ cũng không chèn được HTML */
+      elGuest.hidden = false;
+      var theCard = document.querySelector('.ecard');
+      if (theCard) theCard.classList.add('has-guest');
+    }
+    var oTen = document.getElementById('rName');
+    if (oTen) oTen.value = tenKhach;   /* điền sẵn ô tên ở form xác nhận */
+  }
+
+  /* ---------- 3. NHẠC NỀN ---------- */
   musicToggle.addEventListener('click', function () {
     if (!coNhac) return;
     if (bgm.paused) batNhac(); else tamDung();
   });
 
-  /* ---------- 3. REVEAL KHI CUỘN ---------- */
+  /* ---------- 4. REVEAL KHI CUỘN ---------- */
   var io = new IntersectionObserver(function (entries) {
     entries.forEach(function (e) {
       if (e.isIntersecting) { e.target.classList.add('is-visible'); io.unobserve(e.target); }
@@ -736,7 +774,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }, { threshold: 0.15 });
   document.querySelectorAll('.reveal, .ph').forEach(function (el) { io.observe(el); });
 
-  /* ---------- 4. CÁNH HOA / CONFETTI RƠI ---------- */
+  /* ---------- 5. CÁNH HOA / CONFETTI RƠI ---------- */
   var petalsBox = document.getElementById('petals');
   var GLYPHS = ['🌿', '✿', '❀', '🎓', '✦', '🍃'];
   var petalTimer = null;
@@ -755,7 +793,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }, 650);
   }
 
-  /* ---------- 5. GALLERY LIGHTBOX ---------- */
+  /* ---------- 6. GALLERY LIGHTBOX ---------- */
   var figs = Array.prototype.slice.call(document.querySelectorAll('.ph'));
   var lb = document.getElementById('lightbox');
   var lbImg = document.getElementById('lbImg');
@@ -780,7 +818,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (e.key === 'ArrowRight') step(1);
   });
 
-  /* ---------- 6. XÁC NHẬN THAM DỰ -> GOOGLE SHEET ---------- */
+  /* ---------- 7. XÁC NHẬN THAM DỰ -> GOOGLE SHEET ---------- */
   /* URL Web App của Apps Script. Đổi Sheet thì sửa đúng dòng này.
      Cách lấy URL: xem HUONG-DAN-LUU-PHAN-HOI.md */
   var SHEET_URL = 'https://script.google.com/macros/s/AKfycbyLyF2wuKeeegibvjlj75I29O4RYfaF_CENXBSt2eFIZghj3-Cb5INjCTItK4THCmIF/exec';
@@ -810,7 +848,8 @@ document.addEventListener('DOMContentLoaded', function () {
       var data = new URLSearchParams({
         name: name,
         msg: document.getElementById('rMsg').value.trim(),
-        attend: elAttend.value
+        attend: elAttend.value,
+        guest: tenKhach            /* tên trên link mời, để biết link nào được dùng */
       });
 
       if (!SHEET_URL) {
@@ -839,7 +878,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  /* ---------- 7. LÊN ĐẦU TRANG ---------- */
+  /* ---------- 8. LÊN ĐẦU TRANG ---------- */
   var scrollTopBtn = document.getElementById('scrollTop');
   if (scrollTopBtn) {
     scrollTopBtn.addEventListener('click', function () {

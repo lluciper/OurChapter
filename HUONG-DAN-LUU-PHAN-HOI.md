@@ -29,7 +29,7 @@ function doPost(e) {
   var sheet = ss.getSheetByName('PhanHoi') || ss.insertSheet('PhanHoi');
 
   if (sheet.getLastRow() === 0) {
-    sheet.appendRow(['Thời gian', 'Tên', 'Lời nhắn', 'Tham dự']);
+    sheet.appendRow(['Thời gian', 'Tên', 'Lời nhắn', 'Tham dự', 'Tên trên link mời']);
     sheet.setFrozenRows(1);
   }
 
@@ -38,7 +38,8 @@ function doPost(e) {
     new Date(),
     p.name || '',
     p.msg || '',
-    p.attend || ''
+    p.attend || '',
+    p.guest || ''
   ]);
 
   return ContentService.createTextOutput('ok');
@@ -87,6 +88,11 @@ git add config.js && git commit -m "Ket noi form voi Google Sheet" && git push
 
 Mở <https://lluciper.github.io/OurChapter/>, điền form và bấm **Xác nhận**.
 Mở lại Google Sheet, tab **PhanHoi** phải có một dòng mới.
+
+> Cột **Tên trên link mời** ghi lại tên nằm trong đường dẫn bạn gửi cho người đó
+> (xem `taolink.html`). Nhờ nó bạn biết ai xác nhận bằng link nào, kể cả khi họ tự sửa
+> lại ô tên. Nếu bạn đã deploy script từ trước mà chưa có cột này, sửa lại đoạn `doPost`
+> rồi **Triển khai → Quản lý bản triển khai → bút chì → New version → Deploy**.
 
 ---
 
