@@ -30,7 +30,8 @@
   th{font-size:.76rem;text-transform:uppercase;letter-spacing:1px;color:#7d7365}
   td.name{font-weight:600}
   td.link{word-break:break-all;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
-    font-size:.8rem;color:#5a5245}
+    font-size:.8rem;color:#2c2620}
+  .link-day{display:block;margin-top:4px;color:#9c9384;font-size:.72rem}
   td.act{white-space:nowrap;text-align:right}
   td.act button{padding:7px 14px;font-size:.82rem;border-radius:18px;margin-left:6px}
   .empty{color:#7d7365;font-style:italic;padding:16px 0}
@@ -82,6 +83,9 @@
   <div class="note">
     <p><b>Cách gửi:</b> bấm <b>Copy</b> ở dòng của ai thì dán vào tin nhắn gửi riêng người đó.
       Trên điện thoại còn có nút <b>Gửi</b> để chọn thẳng Zalo, Messenger…</p>
+    <p><b>Hai dạng link:</b> dòng đậm là <b>bản ngắn</b> — gọn hơn và đọc được tên luôn, dùng dạng
+      này để gửi. Dòng mờ bên dưới là <b>bản dài</b> mã hoá đầy đủ; nếu app nhắn tin nào làm hỏng
+      link ngắn (hiếm) thì bấm <b>Copy bản dài</b> gửi thay. Cả hai đều mở ra cùng một thiệp.</p>
     <p><b>Lưu ý:</b> tên nằm ngay trong đường dẫn nên người nhận nhìn thấy được, và họ có thể
       tự sửa tên trong link. Đây là giới hạn của trang tĩnh, không tránh được — nhưng với thiệp
       mời thì hoàn toàn không sao.</p>
@@ -138,11 +142,23 @@
     document.body.removeChild(ta);
   }
 
-  function taoLink(base, ten) {
+  function gocSach(base) {
     var g = (base || '').trim() || TRANG_MAC_DINH;
     g = g.split('#')[0].split('?')[0];               /* bỏ đuôi cũ nếu người dùng dán cả link có tên */
     if (!/\/$/.test(g) && !/\.html?$/i.test(g)) g += '/';
-    return g + '?ten=' + encodeURIComponent(ten);    /* tự lo dấu cách và dấu tiếng Việt */
+    return g;
+  }
+
+  /* Dạng ngắn: dùng '#' thay '?ten=' và để nguyên chữ có dấu, dấu cách đổi thành '_'.
+     Ngắn hơn ~27% và đọc được tên luôn. Dấu cách phải đổi vì trong tin nhắn,
+     khoảng trắng làm đứt link ở giữa. */
+  function taoLinkNgan(base, ten) {
+    return gocSach(base) + '#' + ten.replace(/\s+/g, '_');
+  }
+
+  /* Dạng đầy đủ: mã hoá hết, chắc chắn chạy ở mọi ứng dụng nhắn tin */
+  function taoLinkDay(base, ten) {
+    return gocSach(base) + '?ten=' + encodeURIComponent(ten);
   }
 
   function themNut(td, chu, ghost, fn) {
@@ -168,9 +184,14 @@
     danhSach.forEach(function (d) {
       var tr = document.createElement('tr');
       var tdN = document.createElement('td'); tdN.className = 'name'; tdN.textContent = d.ten;
-      var tdL = document.createElement('td'); tdL.className = 'link'; tdL.textContent = d.link;
+      var tdL = document.createElement('td'); tdL.className = 'link';
+      tdL.textContent = d.link;
+      var phu = document.createElement('span');
+      phu.className = 'link-day';
+      phu.textContent = d.linkDay;
+      tdL.appendChild(phu);
       var tdA = document.createElement('td'); tdA.className = 'act';
-      themNut(tdA, 'Copy', false, function () { copy(d.link, 'Đã copy link của ' + d.ten); });
+      themNut(tdA, 'Copy', false, function () { copy(d.link, 'Đã copy link ngắn của ' + d.ten); });
       if (navigator.share) {
         themNut(tdA, 'Gửi', true, function () {
           navigator.share({ title: 'Thư mời tốt nghiệp', text: 'Gửi ' + d.ten, url: d.link })
@@ -178,6 +199,9 @@
         });
       }
       themNut(tdA, 'Mở', true, function () { window.open(d.link, '_blank', 'noopener'); });
+      themNut(tdA, 'Copy bản dài', true, function () {
+        copy(d.linkDay, 'Đã copy bản dài của ' + d.ten);
+      });
       tr.appendChild(tdN); tr.appendChild(tdL); tr.appendChild(tdA);
       tb.appendChild(tr);
     });
@@ -195,14 +219,16 @@
         if (daCo[k]) return false;                   /* bỏ tên trùng */
         daCo[k] = 1; return true;
       })
-      .map(function (ten) { return { ten: ten, link: taoLink(base, ten) }; });
+      .map(function (ten) {
+        return { ten: ten, link: taoLinkNgan(base, ten), linkDay: taoLinkDay(base, ten) };
+      });
     render();
     toast(danhSach.length ? 'Đã tạo ' + danhSach.length + ' link' : 'Chưa có tên nào');
   });
 
   $('btnCopyAll').addEventListener('click', function () {
     if (!danhSach.length) { toast('Chưa có link nào'); return; }
-    var txt = danhSach.map(function (d) { return d.ten + '\t' + d.link; }).join('\n');
+    var txt = danhSach.map(function (d) { return d.ten + '\t' + d.link + '\t' + d.linkDay; }).join('\n');
     copy(txt, 'Đã copy ' + danhSach.length + ' link');
   });
 

@@ -7,7 +7,7 @@
 <meta name="description" content="Trân trọng kính mời bạn đến dự Lễ Tốt Nghiệp — Phùng Thị Thuỳ Linh, Class of 2026." />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Dancing+Script:wght@500;700&family=Be+Vietnam+Pro:wght@300;400;500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Dancing+Script:wght@500;700&family=Be+Vietnam+Pro:wght@300;400;500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet" />
 <style>
 /* =========================================================
    THIỆP MỜI LỄ KỶ YẾU — Stylesheet
@@ -28,6 +28,7 @@
   --serif:"Playfair Display", serif;
   --cormorant:"Cormorant Garamond", serif;
   --script:"Dancing Script", cursive;
+  --signature:"Alex Brush", "Dancing Script", cursive;
   --body:"Be Vietnam Pro", system-ui, sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0}
@@ -227,7 +228,8 @@ svg{display:block}
 }
 /* chữ khắc (Playfair) cho các dòng lớn */
 .ecard__head{font-family:var(--serif);font-size:1.02rem;font-weight:400;letter-spacing:5px;text-transform:uppercase}
-.ecard__guest{font-family:var(--serif);font-size:1.46rem;font-weight:600;line-height:1.3;margin-top:22px}
+.ecard__guest{font-family:var(--signature);font-weight:400;line-height:1.08;
+  font-size:clamp(1.95rem,calc(var(--pw)*.078),2.8rem);margin-top:16px}
 /* có tên khách thì bớt khoảng trống, không thì thiệp dài quá */
 .ecard.has-guest{--gap:38px}
 .ecard__time{font-family:var(--serif);font-size:clamp(.86rem,calc(var(--pw)*.044),1.24rem);font-weight:400;
@@ -776,14 +778,22 @@ document.addEventListener('DOMContentLoaded', function () {
 
   /* ---------- 5. CÁNH HOA / CONFETTI RƠI ---------- */
   var petalsBox = document.getElementById('petals');
-  var GLYPHS = ['🌿', '✿', '❀', '🎓', '✦', '🍃'];
+  /* dùng ký tự chữ (không phải emoji) để tô màu được — emoji 🎓 luôn đen, không đổi được */
+  var HOA = ['✿', '❀', '❁', '✾', '✦', '❋'];
+  var MAU_HOA = ['#d8a53f', '#7a9e55', '#c2564a'];   /* vàng · xanh · đỏ */
   var petalTimer = null;
   function startPetals() {
     if (petalTimer) return;
     petalTimer = setInterval(function () {
       var p = document.createElement('span');
       p.className = 'petal';
-      p.textContent = GLYPHS[Math.floor(Math.random() * GLYPHS.length)];
+      if (Math.random() < 0.22) {
+        /* mũ tốt nghiệp: emoji nên giữ nguyên màu gốc, không đặt color */
+        p.textContent = '🎓';
+      } else {
+        p.textContent = HOA[Math.floor(Math.random() * HOA.length)];
+        p.style.color = MAU_HOA[Math.floor(Math.random() * MAU_HOA.length)];
+      }
       p.style.left = Math.random() * 100 + '%';
       var dur = 6 + Math.random() * 6;
       p.style.animationDuration = dur + 's';
